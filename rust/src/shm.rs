@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 // TODO: 
+// - Shm: add a new method to get the handle (avoid syscall/copy)
 // - Avoid matching inceptions :D
 // - Add a test for the unmap function
 // - Add a test for the map function
@@ -16,16 +17,36 @@ use sentry_uapi::systypes::SHMPermission;
 use uapi::systypes::shm::ShmInfo;
 use uapi::systypes::Status;
 use uapi::systypes::{ShmHandle, ShmLabel};
-
+use core::option::Option;
 use crate::println;
 use sentry_uapi::copy_from_kernel;
 
-struct Shm<'a> {
-    handle: &'a core::option::Option<ShmHandle>,
+struct Shm {
+    handle: Option<ShmHandle>,
     label: ShmLabel,
+    is_mapped: bool,
 }
 
-impl Shm<'_> {
+impl Shm {
+    pub fn new(label: ShmLabel) -> Result<Shm, Status> {
+        match sentry_uapi::syscall::get_shm_handle(label) {
+            Status::Ok => {
+                let mut handle = 0_u32;
+                match copy_from_kernel(&mut handle) {
+                    Ok(Status::Ok) => {
+                        sentry_uapi::syscall::map_shm(handle);
+                        Ok(Shm {
+                            handle: Some(handle),
+                            label,
+                            is_mapped: false,
+                        })
+                    }
+                    _ => Err(Status::Denied),
+                }
+            }
+            _ => Err(Status::Denied),
+        }
+    }
     /// Retrieve info about the shared memory
     /// # Arguments
     /// * `label` - The label of the shared memory
@@ -117,8 +138,9 @@ mod tests {
     #[test]
     fn test_shm_get_info() {
         let new_shm = Shm {
-            handle: &None,
+            handle: None,
             label: 0x00,
+            is_mapped: false,
         };
         let shm_info = Shm::get_info(new_shm.label);
         assert!(shm_info.is_ok());
