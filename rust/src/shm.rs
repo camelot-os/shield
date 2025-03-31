@@ -28,24 +28,58 @@ struct Shm {
 }
 
 impl Shm {
-    pub fn new(label: ShmLabel) -> Result<Shm, Status> {
-        match sentry_uapi::syscall::get_shm_handle(label) {
-            Status::Ok => {
-                let mut handle = 0_u32;
-                match copy_from_kernel(&mut handle) {
-                    Ok(Status::Ok) => {
-                        sentry_uapi::syscall::map_shm(handle);
-                        Ok(Shm {
-                            handle: Some(handle),
-                            label,
-                            is_mapped: false,
-                        })
-                    }
-                    _ => Err(Status::Denied),
-                }
+        /// Retrieve the handle of the shared memory
+        /// # Arguments
+        ///   * `label` - The label of the shared memory
+        /// # Returns
+        ///   * `u32` - The handle of the shared memory
+        /// # Example
+        /// ```
+        /// let handle = Shm::retrieve_handle(0xAA);
+        /// ```
+        /// # Errors
+        ///   * `Status::Denied` - If handle cannot be retrieved
+        ///   * `Status::Ok` - If handle is retrieved
+        
+        fn retrieve_handle(label: ShmLabel) -> Result<u32, Status> {
+            if sentry_uapi::syscall::get_shm_handle(label) != Status::Ok {
+                return Err(Status::Denied);
             }
-            _ => Err(Status::Denied),
+    
+            let mut handle = 0_u32;
+            match copy_from_kernel(&mut handle) {
+                Ok(Status::Ok) => Ok(handle),
+                _ => Err(Status::Denied),
+            }
         }
+    /// Create a new shared memory
+    /// # Arguments
+    ///   * `label` - The label of the shared memory
+    /// # Returns
+    ///   * `Shm` - The shared memory object
+    /// # Example
+    /// ```
+    /// let shm = Shm::new(0xAA);
+    /// ```
+    /// # Errors
+    ///   * `Status::Denied` - If handle cannot be retrieved
+    
+    pub fn new(&mut self, label: ShmLabel) -> Result<Self, Status> {
+        let handle = match self.handle {
+            Some(h) => h,
+            None => {
+                // Try to retrieve the handle
+                let new_handle = Self::retrieve_handle(self.label)?;
+                self.handle = Some(new_handle);
+                new_handle
+            }
+        };
+        Ok(Shm {
+            handle: Some(handle),
+            label,
+            is_mapped: false,
+        })
+        
     }
     /// Retrieve info about the shared memory
     /// # Arguments
@@ -99,32 +133,43 @@ impl Shm {
     /// * `Status::Denied` - If handle cannot be retrieved
     ///
     pub fn map<'a>(&'a mut self, label: ShmLabel) -> Result<Status, Status> {
-        match sentry_uapi::syscall::get_shm_handle(label) {
+        // Check if the shared memory is already mapped
+        if self.is_mapped {
+            return Err(Status::Busy);
+        }
+
+        // Try to retrieve the handle
+        let handle = match self.handle {
+            Some(h) => h,
+            None => {
+                let new_handle = Self::retrieve_handle(label)?;
+                self.handle = Some(new_handle);
+                new_handle
+            }
+        };
+
+        // Map the shared memory
+        match sentry_uapi::syscall::map_shm(handle) {
             Status::Ok => {
-                let mut handle = 0_u32;
-                match copy_from_kernel(&mut handle) {
-                    Ok(Status::Ok) => {
-                        sentry_uapi::syscall::map_shm(handle);
-                        match copy_from_kernel(&mut handle) {
-                            Ok(Status::Ok) => {
-                                println!("Shared Memory {:#X} mapped.", handle);
-                                Ok(Status::Ok)
-                            }
-                            Err(Status::Denied) => {
-                                println!("Shared memoru mapping denied.");
-                                Err(Status::Denied)
-                            }
-                            _ => Err(Status::Denied),
-                        }
-                    }
-                    _ => Err(Status::Denied),
-                }
+                self.is_mapped = true;
+                Ok(Status::Ok)
             }
             _ => Err(Status::Denied),
         }
     }
-    pub fn unmap(label: ShmLabel) -> Result<Status, Status> {
-        match sentry_uapi::syscall::unmap_shm(label) {
+    pub fn unmap(&mut self, label: ShmLabel) -> Result<Status, Status> {
+        if !self.is_mapped {
+            return Err(Status::Invalid);
+        }
+        let handle = match self.handle {
+            Some(h) => h,
+            None => {
+                let new_handle = Self::retrieve_handle(label)?;
+                self.handle = Some(new_handle);
+                new_handle
+            }
+        };
+        match sentry_uapi::syscall::unmap_shm(handle) {
             Status::Ok => Ok(Status::Ok),
             _ => Err(Status::Denied),
         }
