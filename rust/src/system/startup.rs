@@ -22,13 +22,17 @@ static mut __stack_chk_guard: u32 = 0;
 /// The seed is used to set the compiler-handled SSP value.
 #[no_mangle]
 pub extern "C" fn _start(_thread_id: u32, seed: u32) -> ! {
-    unsafe { __stack_chk_guard = seed; }
+    unsafe {
+        __stack_chk_guard = seed;
+    }
 
     // TODO init seed for rand_r ?
     // rustlang initialisation ? heap for custom allocator ?
 
     // XXX: as main is extern, call is unsafe by construction.
-    unsafe { main(); }
+    unsafe {
+        main();
+    }
 
     // TODO call uapi::sys::exit();
 
