@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
-// TODO: 
+// TODO:
 // - Shm: add a new method to get the handle (avoid syscall/copy)
 // - Avoid matching inceptions :D
 // - Add a test for the unmap function
@@ -13,13 +13,13 @@
 // - .map() add the credentials
 // - .map() returns a MappedShm obj that holds ummap
 
+use crate::println;
+use core::option::Option;
+use sentry_uapi::copy_from_kernel;
 use sentry_uapi::systypes::SHMPermission;
 use uapi::systypes::shm::ShmInfo;
 use uapi::systypes::Status;
 use uapi::systypes::{ShmHandle, ShmLabel};
-use core::option::Option;
-use crate::println;
-use sentry_uapi::copy_from_kernel;
 
 struct Shm {
     handle: Option<ShmHandle>,
@@ -28,30 +28,29 @@ struct Shm {
 }
 
 impl Shm {
-        /// Retrieve the handle of the shared memory
-        /// # Arguments
-        ///   * `label` - The label of the shared memory
-        /// # Returns
-        ///   * `u32` - The handle of the shared memory
-        /// # Example
-        /// ```
-        /// let handle = Shm::retrieve_handle(0xAA);
-        /// ```
-        /// # Errors
-        ///   * `Status::Denied` - If handle cannot be retrieved
-        ///   * `Status::Ok` - If handle is retrieved
-        
-        fn retrieve_handle(label: ShmLabel) -> Result<u32, Status> {
-            if sentry_uapi::syscall::get_shm_handle(label) != Status::Ok {
-                return Err(Status::Denied);
-            }
-    
-            let mut handle = 0_u32;
-            match copy_from_kernel(&mut handle) {
-                Ok(Status::Ok) => Ok(handle),
-                _ => Err(Status::Denied),
-            }
+    /// Retrieve the handle of the shared memory
+    /// # Arguments
+    ///   * `label` - The label of the shared memory
+    /// # Returns
+    ///   * `u32` - The handle of the shared memory
+    /// # Example
+    /// ```
+    /// let handle = Shm::retrieve_handle(0xAA);
+    /// ```
+    /// # Errors
+    ///   * `Status::Denied` - If handle cannot be retrieved
+
+    fn retrieve_handle(label: ShmLabel) -> Result<u32, Status> {
+        if sentry_uapi::syscall::get_shm_handle(label) != Status::Ok {
+            return Err(Status::Denied);
         }
+
+        let mut handle = 0_u32;
+        match copy_from_kernel(&mut handle) {
+            Ok(Status::Ok) => Ok(handle),
+            _ => Err(Status::Denied),
+        }
+    }
     /// Create a new shared memory
     /// # Arguments
     ///   * `label` - The label of the shared memory
@@ -63,7 +62,7 @@ impl Shm {
     /// ```
     /// # Errors
     ///   * `Status::Denied` - If handle cannot be retrieved
-    
+
     pub fn new(&mut self, label: ShmLabel) -> Result<Self, Status> {
         let handle = match self.handle {
             Some(h) => h,
@@ -74,13 +73,18 @@ impl Shm {
                 new_handle
             }
         };
-        Ok(Shm {
-            handle: Some(handle),
-            label,
-            is_mapped: false,
-        })
-        
+        // Check if the shared memory is already mapped
+        if self.is_mapped {
+            return Err(Status::AlreadyMapped);
+        } else {
+            Ok(Shm {
+                handle: Some(handle),
+                label,
+                is_mapped: false,
+            })
+        }
     }
+
     /// Retrieve info about the shared memory
     /// # Arguments
     /// * `label` - The label of the shared memory
@@ -93,7 +97,7 @@ impl Shm {
     /// # Errors
     /// * `Status::Denied` - If handle cannot be retrieved
 
-    pub fn get_info(label: ShmLabel) -> Result<ShmInfo, Status> {
+    pub fn get_info(&mut self) -> Result<ShmInfo, Status> {
         // Create a new ShmInfo structure
         let mut shm_info = ShmInfo {
             label: 0,
@@ -102,21 +106,18 @@ impl Shm {
             len: 0,
             perms: SHMPermission::Read.into(),
         };
-
-        match sentry_uapi::syscall::get_shm_handle(label) {
-            Status::Ok => {
-                let mut handle: u32 = 0_u32;
-                match copy_from_kernel(&mut handle) {
-                    Ok(Status::Ok) => {
-                        sentry_uapi::syscall::shm_get_infos(label);
-                        match copy_from_kernel(&mut shm_info) {
-                            Ok(Status::Ok) => Ok(shm_info),
-                            _ => Err(Status::Denied),
-                        }
-                    }
-                    _ => Err(Status::Denied),
-                }
+        let handle = match self.handle {
+            Some(h) => h,
+            None => {
+                // Try to retrieve the handle
+                let new_handle = Self::retrieve_handle(self.label)?;
+                self.handle = Some(new_handle);
+                new_handle
             }
+        };
+        sentry_uapi::syscall::shm_get_infos(handle);
+        match copy_from_kernel(&mut shm_info) {
+            Ok(Status::Ok) => Ok(shm_info),
             _ => Err(Status::Denied),
         }
     }
@@ -132,7 +133,7 @@ impl Shm {
     /// # Errors
     /// * `Status::Denied` - If handle cannot be retrieved
     ///
-    pub fn map<'a>(&'a mut self, label: ShmLabel) -> Result<Status, Status> {
+    pub fn map<'a>(&'a mut self) -> Result<Status, Status> {
         // Check if the shared memory is already mapped
         if self.is_mapped {
             return Err(Status::Busy);
@@ -142,7 +143,7 @@ impl Shm {
         let handle = match self.handle {
             Some(h) => h,
             None => {
-                let new_handle = Self::retrieve_handle(label)?;
+                let new_handle = Self::retrieve_handle(self.label)?;
                 self.handle = Some(new_handle);
                 new_handle
             }
@@ -157,14 +158,14 @@ impl Shm {
             _ => Err(Status::Denied),
         }
     }
-    pub fn unmap(&mut self, label: ShmLabel) -> Result<Status, Status> {
+    pub fn unmap(&mut self) -> Result<Status, Status> {
         if !self.is_mapped {
             return Err(Status::Invalid);
         }
         let handle = match self.handle {
             Some(h) => h,
             None => {
-                let new_handle = Self::retrieve_handle(label)?;
+                let new_handle = Self::retrieve_handle(self.label)?;
                 self.handle = Some(new_handle);
                 new_handle
             }
