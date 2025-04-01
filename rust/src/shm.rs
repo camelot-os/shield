@@ -3,10 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 // TODO:
-// - Shm: add a new method to get the handle (avoid syscall/copy)
-// - Avoid matching inceptions :D
-// - Add a test for the unmap function
-// - Add a test for the map function
+// - Add unit tests
 // - Handle every returned Status
 // - Add a shm.is_readable() function
 // - Add a shm.is_writable() function
