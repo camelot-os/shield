@@ -20,7 +20,7 @@ use uapi::systypes::{ShmHandle, ShmLabel};
 
 struct Shm {
     handle: Option<ShmHandle>,
-    label: ShmLabel,
+    label: Option<ShmLabel>,
     is_mapped: bool,
 }
 
@@ -65,7 +65,7 @@ impl Shm {
             Some(h) => h,
             None => {
                 // Try to retrieve the handle
-                let new_handle = Self::retrieve_handle(self.label)?;
+                let new_handle = Self::retrieve_handle(label)?;
                 self.handle = Some(new_handle);
                 new_handle
             }
@@ -76,7 +76,7 @@ impl Shm {
         } else {
             Ok(Shm {
                 handle: Some(handle),
-                label,
+                label: Some(label),
                 is_mapped: false,
             })
         }
@@ -107,7 +107,11 @@ impl Shm {
             Some(h) => h,
             None => {
                 // Try to retrieve the handle
-                let new_handle = Self::retrieve_handle(self.label)?;
+                let label = match self.label {
+                    Some(l) => l,
+                    None => return Err(Status::Invalid),
+                };
+                let new_handle = Self::retrieve_handle(label)?;
                 self.handle = Some(new_handle);
                 new_handle
             }
@@ -135,12 +139,17 @@ impl Shm {
         if self.is_mapped {
             return Err(Status::Busy);
         }
+        // Check if label is defined
 
         // Try to retrieve the handle
         let handle = match self.handle {
             Some(h) => h,
             None => {
-                let new_handle = Self::retrieve_handle(self.label)?;
+                let label = match self.label {
+                    Some(l) => l,
+                    None => return Err(Status::Invalid),
+                };
+                let new_handle = Self::retrieve_handle(label)?;
                 self.handle = Some(new_handle);
                 new_handle
             }
@@ -162,7 +171,11 @@ impl Shm {
         let handle = match self.handle {
             Some(h) => h,
             None => {
-                let new_handle = Self::retrieve_handle(self.label)?;
+                let label = match self.label {
+                    Some(l) => l,
+                    None => return Err(Status::Invalid),
+                };
+                let new_handle = Self::retrieve_handle(label)?;
                 self.handle = Some(new_handle);
                 new_handle
             }
