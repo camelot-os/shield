@@ -21,7 +21,8 @@ use uapi::systypes::{ShmHandle, ShmLabel};
 struct Shm {
     handle: Option<ShmHandle>,
     label: Option<ShmLabel>,
-    is_mapped: bool,
+    mapped_to: Option<u32>,
+    perms: Option<u32>,
 }
 
 impl Shm {
@@ -36,7 +37,6 @@ impl Shm {
     /// ```
     /// # Errors
     ///   * `Status::Denied` - If handle cannot be retrieved
-
     fn retrieve_handle(label: ShmLabel) -> Result<u32, Status> {
         if sentry_uapi::syscall::get_shm_handle(label) != Status::Ok {
             return Err(Status::Denied);
@@ -59,7 +59,6 @@ impl Shm {
     /// ```
     /// # Errors
     ///   * `Status::Denied` - If handle cannot be retrieved
-
     pub fn new(&mut self, label: ShmLabel) -> Result<Self, Status> {
         let handle = match self.handle {
             Some(h) => h,
@@ -71,13 +70,14 @@ impl Shm {
             }
         };
         // Check if the shared memory is already mapped
-        if self.is_mapped {
-            return Err(Status::AlreadyMapped);
+        if self.mapped_to.is_some() {
+            Err(Status::AlreadyMapped)
         } else {
             Ok(Shm {
                 handle: Some(handle),
                 label: Some(label),
-                is_mapped: false,
+                mapped_to: None,
+                perms:None,
             })
         }
     }
@@ -93,7 +93,6 @@ impl Shm {
     /// ```
     /// # Errors
     /// * `Status::Denied` - If handle cannot be retrieved
-
     pub fn get_info(&mut self) -> Result<ShmInfo, Status> {
         // Create a new ShmInfo structure
         let mut shm_info = ShmInfo {
@@ -133,13 +132,11 @@ impl Shm {
     /// ```
     /// # Errors
     /// * `Status::Denied` - If handle cannot be retrieved
-    ///
-    pub fn map<'a>(&'a mut self) -> Result<Status, Status> {
+    pub fn map(&mut self, to_task: u32, perms: u32) -> Result<Status, Status> {
         // Check if the shared memory is already mapped
-        if self.is_mapped {
+        if self.mapped_to.is_some() {
             return Err(Status::Busy);
         }
-        // Check if label is defined
 
         // Try to retrieve the handle
         let handle = match self.handle {
@@ -154,18 +151,28 @@ impl Shm {
                 new_handle
             }
         };
+        // Setting creedentials
+        match sentry_uapi::syscall::shm_set_credential(handle, to_task, perms) {
+            Status::Ok => {
+                self.perms = Some(perms);
+            }
+            Status::Busy => return Err(Status::Busy),
+            _ => return Err(Status::Denied),
+            
+        }
 
         // Map the shared memory
         match sentry_uapi::syscall::map_shm(handle) {
             Status::Ok => {
-                self.is_mapped = true;
+                self.mapped_to = Some(to_task);
                 Ok(Status::Ok)
             }
             _ => Err(Status::Denied),
         }
     }
     pub fn unmap(&mut self) -> Result<Status, Status> {
-        if !self.is_mapped {
+        // Check if the shared memory is currently mapped
+        if self.mapped_to.is_none() {
             return Err(Status::Invalid);
         }
         let handle = match self.handle {
@@ -196,7 +203,8 @@ mod tests {
         let new_shm = Shm {
             handle: None,
             label: 0x00,
-            is_mapped: false,
+            mapped_to: 0x00,
+            perms:(SHMPermission::Read | SHMPermission::Write).into(),
         };
         let shm_info = Shm::get_info(new_shm.label);
         assert!(shm_info.is_ok());
