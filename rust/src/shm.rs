@@ -36,7 +36,7 @@ impl Shm {
     /// ```
     /// # Errors
     ///   * `Status::Denied` - If handle cannot be retrieved
-    fn retrieve_handle(label: ShmLabel) -> Result<u32, Status> {
+    pub fn retrieve_handle(label: ShmLabel) -> Result<u32, Status> {
         if sentry_uapi::syscall::get_shm_handle(label) != Status::Ok {
             return Err(Status::Denied);
         }
@@ -58,27 +58,15 @@ impl Shm {
     /// ```
     /// # Errors
     ///   * `Status::Denied` - If handle cannot be retrieved
-    pub fn new(&mut self, label: ShmLabel) -> Result<Self, Status> {
-        let handle = match self.handle {
-            Some(h) => h,
-            None => {
-                // Try to retrieve the handle
-                let new_handle = Self::retrieve_handle(label)?;
-                self.handle = Some(new_handle);
-                new_handle
-            }
-        };
-        // Check if the shared memory is already mapped
-        if self.mapped_to.is_some() {
-            Err(Status::AlreadyMapped)
-        } else {
-            Ok(Shm {
-                handle: Some(handle),
-                label: Some(label),
-                mapped_to: None,
-                perms:None,
-            })
-        }
+    pub fn new(label: ShmLabel) -> Result<Self, Status> {
+        let handle = Self::retrieve_handle(label)?;
+
+        Ok(Shm {
+            handle: Some(handle),
+            label: Some(label),
+            mapped_to: None,
+            perms: None,
+        })
     }
 
     /// Retrieve info about the shared memory
@@ -138,7 +126,7 @@ impl Shm {
             return Err(Status::Busy);
         }
 
-        // Try to retrieve the handle
+        // Try to retrieve the handle if it is not already set
         let handle = match self.handle {
             Some(h) => h,
             None => {
@@ -158,7 +146,6 @@ impl Shm {
             }
             Status::Busy => return Err(Status::Busy),
             _ => return Err(Status::Denied),
-            
         }
 
         // Map the shared memory
@@ -192,8 +179,127 @@ impl Shm {
                 self.mapped_to = None;
                 self.perms = None;
                 Ok(Status::Ok)
-            },
+            }
             _ => Err(Status::Denied),
+        }
+    }
+    pub fn set_creds(&mut self, to_task: u32, perms: u32) -> Result<Status, Status> {
+        // Check if the shared memory is currently mapped
+        if self.mapped_to.is_some() {
+            return Err(Status::Busy);
+        }
+        let handle = match self.handle {
+            Some(h) => h,
+            None => {
+                let label = match self.label {
+                    Some(l) => l,
+                    None => return Err(Status::Invalid),
+                };
+                let new_handle = Self::retrieve_handle(label)?;
+                self.handle = Some(new_handle);
+                new_handle
+            }
+        };
+        // Setting creedentials
+        match sentry_uapi::syscall::shm_set_credential(handle, to_task, perms) {
+            Status::Ok => {
+                self.perms = Some(perms);
+                Ok(Status::Ok)
+            }
+            Status::Busy => Err(Status::Busy),
+            _ => Err(Status::Denied),
+        }
+    }
+    /// Get the credentials of the shared memory
+    /// # Returns
+    /// * `u32` - The credentials of the shared memory
+    /// # Example
+    /// ```
+    /// let creds = shm.get_credential();
+    /// ```
+    pub fn get_creds(&mut self) -> Result<u32, Status> {
+        // Get crendentials from get_info
+        let shm_info = self.get_info()?;
+        Ok(shm_info.perms)
+    }
+    /// Check if the shared memory is mappable
+    /// # Returns
+    /// * `bool` - True if the shared memory is mappable, false otherwise
+    /// # Example
+    /// ```
+    /// let is_mappable = shm.is_mappable();
+    /// ```
+    pub fn is_mappable(&mut self) -> bool {
+        let shm_info = self.get_info();
+        match shm_info {
+            Ok(info) => {
+                if info.perms & SHMPermission::Map as u32 == 0 {
+                    self.perms = Some(info.perms);
+                    return true;
+                }
+                false
+            }
+            Err(_) => false,
+        }
+    }
+    /// Check if the shared memory is readable
+    /// # Returns
+    /// * `bool` - True if the shared memory is readable, false otherwise
+    /// # Example
+    /// ```
+    /// let is_readable = shm.is_readable();
+    /// ```
+    pub fn is_readable(&mut self) -> bool {
+        let shm_info = self.get_info();
+        match shm_info {
+            Ok(info) => {
+                if info.perms & SHMPermission::Read as u32 == 0 {
+                    self.perms = Some(info.perms);
+                    return true;
+                }
+                false
+            }
+            Err(_) => false,
+        }
+    }
+    /// Check if the shared memory is writable
+    /// # Returns
+    /// * `bool` - True if the shared memory is writable, false otherwise
+    /// # Example
+    /// ```
+    /// let is_writable = shm.is_writable();
+    /// ```
+    pub fn is_writable(&mut self) -> bool {
+        let shm_info = self.get_info();
+        match shm_info {
+            Ok(info) => {
+                if info.perms & SHMPermission::Write as u32 == 0 {
+                    self.perms = Some(info.perms);
+                    return true;
+                }
+                false
+            }
+            Err(_) => false,
+        }
+    }
+    /// Check if the shared memory is transferable
+    /// # Returns
+    /// * `bool` - True if the shared memory is transferable, false otherwise
+    /// # Example
+    /// ```
+    /// let is_transferable = shm.is_transferable();
+    /// ```
+    pub fn is_transferable(&mut self) -> bool {
+        let shm_info = self.get_info();
+        match shm_info {
+            Ok(info) => {
+                if info.perms & SHMPermission::Transfer as u32 == 0 {
+                    self.perms = Some(info.perms);
+                    return true;
+                }
+                false
+            }
+            Err(_) => false,
         }
     }
 }
@@ -243,5 +349,19 @@ mod tests {
         assert!(unmap_result.is_ok());
         assert_eq!(new_shm.mapped_to, None);
         assert_eq!(new_shm.perms, None);
+    }
+
+    #[test]
+    fn test_shm_get_info() {
+        let mut new_shm = Shm {
+            handle: None,
+            label: Some(0xAA),
+            mapped_to: None,
+            perms: None,
+        };
+        let info_result = new_shm.get_info();
+        assert!(info_result.is_ok());
+        let info = info_result.unwrap();
+        assert_eq!(info.label, 0xAA);
     }
 }
