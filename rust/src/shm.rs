@@ -5,9 +5,6 @@
 // TODO:
 // - Add unit tests
 // - Handle every returned Status
-// - Add a shm.is_readable() function
-// - Add a shm.is_writable() function
-// - .map() returns a MappedShm obj that holds ummap
 
 //use crate::println;
 use core::option::Option;
@@ -301,6 +298,30 @@ impl Shm {
             }
             Err(_) => false,
         }
+    }
+    /// Find the base address of the shared memory
+    /// # Returns
+    /// * `usize` - The base address of the shared memory
+    /// # Example
+    /// ```
+    /// let base = shm.get_base();
+    /// ```
+    pub fn get_base(&mut self) -> Result<usize, Status> {
+        // Get base from get_info
+        let shm_info = self.get_info()?;
+        Ok(shm_info.base)
+    }
+    /// Find the length of the shared memory
+    /// # Returns
+    /// * `usize` - The length of the shared memory
+    /// # Example
+    /// ```
+    /// let len = shm.get_len();
+    /// ```
+    pub fn get_len(&mut self) -> Result<usize, Status> {
+        // Get len from get_info
+        let shm_info = self.get_info()?;
+        Ok(shm_info.len)
     }
 }
 
