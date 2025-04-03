@@ -9,5 +9,6 @@ extern crate shield_macros as macros;
 
 pub use macros::shield_main;
 pub mod print;
+pub mod process;
 pub mod shm;
 pub mod system;
