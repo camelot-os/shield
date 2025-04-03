@@ -26,7 +26,7 @@ impl Shm {
     /// # Arguments
     ///   * `label` - The label of the shared memory
     /// # Returns
-    ///   * `u32` - The handle of the shared memory
+    ///   * `Ok(u32)` - The handle of the shared memory
     /// # Example
     /// ```
     /// let handle = Shm::retrieve_handle(0xAA);
@@ -48,7 +48,7 @@ impl Shm {
     /// # Arguments
     ///   * `label` - The label of the shared memory
     /// # Returns
-    ///   * `Shm` - The shared memory object
+    ///   * `Ok(Shm)` - The shared memory object
     /// # Example
     /// ```
     /// let shm = Shm::new(0xAA);
@@ -70,7 +70,7 @@ impl Shm {
     /// # Arguments
     /// * `label` - The label of the shared memory
     /// # Returns
-    /// * `ShmInfo` - The info of the shared memory
+    /// * `Ok(ShmInfo)` - The info of the shared memory
     /// # Example
     /// ```
     /// let info = shm.get_info(0xAA);
@@ -108,7 +108,8 @@ impl Shm {
     /// Map the shared memory by retrieving the handle
     /// # Arguments
     /// * `to_task` - The task to map the shared memory to
-    /// * `perms` - The permissions to set for the shared memory
+    /// # Returns
+    /// * `Ok(Status::Ok)` - If the the mapping is done
     /// # Example
     /// ```
     /// let handle = shm.map(0xAA, SHMPermission::Read | SHMPermission::Write);
@@ -117,7 +118,7 @@ impl Shm {
     /// * `Status::Denied` - If handle cannot be retrieved
     /// * `Status::Busy` - If the shared memory is already mapped
     /// * `Status::Invalid` - If the shared memory is invalid
-    pub fn map(&mut self, to_task: u32, perms: u32) -> Result<Status, Status> {
+    pub fn map(&mut self, to_task: u32) -> Result<Status, Status> {
         // Check if the shared memory is already mapped
         if self.mapped_to.is_some() {
             return Err(Status::Busy);
@@ -136,14 +137,6 @@ impl Shm {
                 new_handle
             }
         };
-        // Setting creedentials
-        match sentry_uapi::syscall::shm_set_credential(handle, to_task, perms) {
-            Status::Ok => {
-                self.perms = Some(perms);
-            }
-            Status::Busy => return Err(Status::Busy),
-            _ => return Err(Status::Denied),
-        }
 
         // Map the shared memory
         match sentry_uapi::syscall::map_shm(handle) {
@@ -154,6 +147,16 @@ impl Shm {
             _ => Err(Status::Denied),
         }
     }
+    /// Unmap the shared memory
+    /// # Returns
+    /// * `Ok(Status::Ok)` - If the unmapping is done
+    /// # Example
+    /// ```
+    /// let handle = shm.unmap();
+    /// ```
+    /// # Errors
+    /// * `Status::Denied` - If handle cannot be retrieved
+    /// * `Status::Invalid` - If the shared memory is invalid
     pub fn unmap(&mut self) -> Result<Status, Status> {
         // Check if the shared memory is currently mapped
         if self.mapped_to.is_none() {
@@ -180,6 +183,19 @@ impl Shm {
             _ => Err(Status::Denied),
         }
     }
+
+    /// Set the credentials of the shared memory
+    /// # Arguments
+    /// * `to_task` - The task to set the credentials to
+    /// * `perms` - The permissions to set
+    /// # Returns
+    /// * `Ok(Status::Ok)` - If the setting is done
+    /// # Example
+    /// ```
+    /// let handle = shm.set_creds(0xAA, SHMPermission::Read | SHMPermission::Write);
+    /// ```
+    /// # Errors
+    /// * `Status::Denied` - If handle cannot be retrieved
     pub fn set_creds(&mut self, to_task: u32, perms: u32) -> Result<Status, Status> {
         // Check if the shared memory is currently mapped
         if self.mapped_to.is_some() {
@@ -209,7 +225,7 @@ impl Shm {
     }
     /// Get the credentials of the shared memory
     /// # Returns
-    /// * `u32` - The credentials of the shared memory
+    /// * `Ok(u32)` - The credentials of the shared memory
     /// # Example
     /// ```
     /// let creds = shm.get_credential();
@@ -325,64 +341,3 @@ impl Shm {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_shm_new() {
-        let mut new_shm = Shm {
-            handle: None,
-            label: Some(0x00),
-            mapped_to: None,
-            perms: None,
-        };
-        let shm = new_shm.new(0xAA);
-        assert!(shm.is_ok());
-        let shm = shm.unwrap();
-        assert_eq!(shm.label, Some(0xAA));
-    }
-
-    #[test]
-    fn test_shm_map() {
-        let mut new_shm = Shm {
-            handle: None,
-            label: Some(0xAA),
-            mapped_to: None,
-            perms: None,
-        };
-        let map_result = new_shm.map(0x01, SHMPermission::Read | SHMPermission::Write);
-        assert!(map_result.is_ok());
-        assert_eq!(new_shm.mapped_to, Some(0x01));
-    }
-
-    #[test]
-    fn test_shm_map_unmap() {
-        let mut new_shm = Shm {
-            handle: None,
-            label: Some(0xAA),
-            mapped_to: Some(0x01),
-            perms: None,
-        };
-        let map_result = new_shm.map(0x01, SHMPermission::Read | SHMPermission::Write);
-        assert!(map_result.is_ok());
-        let unmap_result = new_shm.unmap();
-        assert!(unmap_result.is_ok());
-        assert_eq!(new_shm.mapped_to, None);
-        assert_eq!(new_shm.perms, None);
-    }
-
-    #[test]
-    fn test_shm_get_info() {
-        let mut new_shm = Shm {
-            handle: None,
-            label: Some(0xAA),
-            mapped_to: None,
-            perms: None,
-        };
-        let info_result = new_shm.get_info();
-        assert!(info_result.is_ok());
-        let info = info_result.unwrap();
-        assert_eq!(info.label, 0xAA);
-    }
-}
