@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
-extern "Rust" {
+unsafe extern "Rust" {
     /// External no_mangled, Rust ABI, `main` function declaration
     /// symbol defined in main.rs of the binary crate w/ [`shield-startup-macros::shield_main`] macro
     fn main();
@@ -10,7 +10,7 @@ extern "Rust" {
 
 ///  Canari variable, as defined in LLVM & GCC compiler documentation, in order to
 ///  be manipulated each time a new frame is added on stack
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[used]
 static mut __stack_chk_guard: u32 = 0;
 
@@ -20,7 +20,7 @@ static mut __stack_chk_guard: u32 = 0;
 /// passed by the Sentry kernel as arguments.
 ///
 /// The seed is used to set the compiler-handled SSP value.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn _start(_thread_id: u32, seed: u32) -> ! {
     unsafe {
         __stack_chk_guard = seed;
