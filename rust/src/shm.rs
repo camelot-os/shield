@@ -4,17 +4,16 @@
 
 // TODO:
 // - Add unit tests
-// - Handle every returned Status
 
-//use crate::println;
 use core::option::Option;
+use core::prelude::rust_2024::Err;
 use sentry_uapi::copy_from_kernel;
 use sentry_uapi::systypes::SHMPermission;
-use uapi::systypes::shm::ShmInfo;
 use uapi::systypes::Status;
+use uapi::systypes::shm::ShmInfo;
 use uapi::systypes::{ShmHandle, ShmLabel};
 
-struct Shm {
+pub struct Shm {
     handle: Option<ShmHandle>,
     label: Option<ShmLabel>,
     mapped_to: Option<u32>,
@@ -32,15 +31,26 @@ impl Shm {
     /// let handle = Shm::retrieve_handle(0xAA);
     /// ```
     /// # Errors
-    ///   * `Status::Denied` - If handle cannot be retrieved
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
+
     pub fn retrieve_handle(label: ShmLabel) -> Result<u32, Status> {
-        if sentry_uapi::syscall::get_shm_handle(label) != Status::Ok {
-            return Err(Status::Denied);
+        match sentry_uapi::syscall::get_shm_handle(label) {
+            Status::Ok => {}
+            status => return Err(status),
         }
 
         let mut handle = 0_u32;
         match copy_from_kernel(&mut handle) {
             Ok(Status::Ok) => Ok(handle),
+            Err(status) => Err(status),
             _ => Err(Status::Denied),
         }
     }
@@ -54,7 +64,15 @@ impl Shm {
     /// let shm = Shm::new(0xAA);
     /// ```
     /// # Errors
-    ///   * `Status::Denied` - If handle cannot be retrieved
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
     pub fn new(label: ShmLabel) -> Result<Self, Status> {
         let handle = Self::retrieve_handle(label)?;
 
@@ -76,7 +94,15 @@ impl Shm {
     /// let info = shm.get_info(0xAA);
     /// ```
     /// # Errors
-    /// * `Status::Denied` - If handle cannot be retrieved
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
     pub fn get_info(&mut self) -> Result<ShmInfo, Status> {
         // Create a new ShmInfo structure
         let mut shm_info = ShmInfo {
@@ -102,6 +128,7 @@ impl Shm {
         sentry_uapi::syscall::shm_get_infos(handle);
         match copy_from_kernel(&mut shm_info) {
             Ok(Status::Ok) => Ok(shm_info),
+            Err(status) => Err(status),
             _ => Err(Status::Denied),
         }
     }
@@ -115,9 +142,16 @@ impl Shm {
     /// let handle = shm.map(0xAA, SHMPermission::Read | SHMPermission::Write);
     /// ```
     /// # Errors
-    /// * `Status::Denied` - If handle cannot be retrieved
-    /// * `Status::Busy` - If the shared memory is already mapped
-    /// * `Status::Invalid` - If the shared memory is invalid
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
+    /// * `Status::AlreadyMapped` - The requested resource is already mapped
     pub fn map(&mut self, to_task: u32) -> Result<Status, Status> {
         // Check if the shared memory is already mapped
         if self.mapped_to.is_some() {
@@ -144,7 +178,7 @@ impl Shm {
                 self.mapped_to = Some(to_task);
                 Ok(Status::Ok)
             }
-            _ => Err(Status::Denied),
+            status => Err(status),
         }
     }
     /// Unmap the shared memory
@@ -155,8 +189,16 @@ impl Shm {
     /// let handle = shm.unmap();
     /// ```
     /// # Errors
-    /// * `Status::Denied` - If handle cannot be retrieved
-    /// * `Status::Invalid` - If the shared memory is invalid
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
+    /// * `Status::AlreadyMapped` - The requested resource is already mapped
     pub fn unmap(&mut self) -> Result<Status, Status> {
         // Check if the shared memory is currently mapped
         if self.mapped_to.is_none() {
@@ -180,7 +222,7 @@ impl Shm {
                 self.perms = None;
                 Ok(Status::Ok)
             }
-            _ => Err(Status::Denied),
+            status => Err(status),
         }
     }
 
@@ -195,7 +237,16 @@ impl Shm {
     /// let handle = shm.set_creds(0xAA, SHMPermission::Read | SHMPermission::Write);
     /// ```
     /// # Errors
-    /// * `Status::Denied` - If handle cannot be retrieved
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
+    /// * `Status::AlreadyMapped` - The requested resource is already mapped
     pub fn set_creds(&mut self, to_task: u32, perms: u32) -> Result<Status, Status> {
         // Check if the shared memory is currently mapped
         if self.mapped_to.is_some() {
@@ -219,8 +270,7 @@ impl Shm {
                 self.perms = Some(perms);
                 Ok(Status::Ok)
             }
-            Status::Busy => Err(Status::Busy),
-            _ => Err(Status::Denied),
+            status => Err(status),
         }
     }
     /// Get the credentials of the shared memory
@@ -230,6 +280,17 @@ impl Shm {
     /// ```
     /// let creds = shm.get_credential();
     /// ```
+    /// # Errors
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
+    /// * `Status::AlreadyMapped` - The requested resource is already mapped
     pub fn get_creds(&mut self) -> Result<u32, Status> {
         // Get crendentials from get_info
         let shm_info = self.get_info()?;
@@ -322,6 +383,17 @@ impl Shm {
     /// ```
     /// let base = shm.get_base();
     /// ```
+    /// # Errors
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
+    /// * `Status::AlreadyMapped` - The requested resource is already mapped
     pub fn get_base(&mut self) -> Result<usize, Status> {
         // Get base from get_info
         let shm_info = self.get_info()?;
@@ -334,6 +406,17 @@ impl Shm {
     /// ```
     /// let len = shm.get_len();
     /// ```
+    /// # Errors
+    /// * `Status::Denied` - The requested action is not allowed for caller
+    /// * `Status::Invalid` - At least one parameter is not valid (not allowed or not found)
+    /// * `Status::Busy` - The requested resource do now allow the current call for now
+    /// * `Status::NoEntity` - The requested resource was not found
+    /// * `Status::Critical` - Critical (mostly security-related) unexpected event
+    /// * `Status::Timeout` - The requested action timed out
+    /// * `Status::Again` - The requested resource is not here yet, come back later
+    /// * `Status::Intr` - The call has been interrupted sooner than expected. Used for blocking calls
+    /// * `Status::Deadlk` - The requested resource can’t be manipulated without generating a dead lock
+    /// * `Status::AlreadyMapped` - The requested resource is already mapped
     pub fn get_len(&mut self) -> Result<usize, Status> {
         // Get len from get_info
         let shm_info = self.get_info()?;
