@@ -8,6 +8,7 @@ extern crate sentry_uapi as uapi;
 extern crate shield_macros as macros;
 
 pub use macros::shield_main;
+pub use uapi::systypes::Status;
 pub mod print;
 pub mod process;
 pub mod shm;
