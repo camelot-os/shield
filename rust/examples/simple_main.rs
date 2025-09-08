@@ -9,6 +9,4 @@ extern crate shield;
 
 shield::shield_main!();
 
-fn main() {
-
-}
+fn main() {}

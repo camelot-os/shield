@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 use core::fmt;
-use uapi::{syscall, copy_to_kernel};
+use uapi::{copy_to_kernel, syscall};
 
 // XXX for a given logger, we should support multiple sink
 // e.g. __sys_log syscall, other term, file, etc.
