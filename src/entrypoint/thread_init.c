@@ -36,6 +36,7 @@ void __stack_chk_fail(void)
     /* Inform Kernel that a SSP check has failed trough exit code */
     __sys_exit(123);
     /* never reached */
+    __builtin_unreachable();
 }
 
 #endif/**/
