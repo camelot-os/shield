@@ -32,7 +32,9 @@ __stack_chk_fail(void)
     /* never reached */
 }
 #else
-void __stack_chk_fail(void)
+void
+__attribute__((no_stack_protector, noreturn, used))
+__stack_chk_fail(void)
 {
     /* fallbacking to portable yet frame-requiring implementation */
     /* Inform Kernel that a SSP check has failed trough exit code */
