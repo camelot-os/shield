@@ -25,7 +25,7 @@ void __stack_chk_fail(void)
     __asm__ volatile(
         "ldr r0, =123UL\n" /* exit code in r0 */
         "svc %0\n"
-        :: "I" SYSCALL_EXIT
+        :: "I" (SYSCALL_EXIT)
     );
     /* never reached */
 }
