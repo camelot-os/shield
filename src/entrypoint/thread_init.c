@@ -1,10 +1,12 @@
 // SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
+// SPDX-FileCopyrightText: 2026 H2Lab Development Team
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 #include <stdint.h>
 
 #include <uapi.h>
+#include <types.h>
 #include "libc_init.h"
 #include "../include/shield/private/rand.h"
 
@@ -14,6 +16,29 @@
  * INFO: this file is not compiled in UT mode
  */
 uint32_t __stack_chk_guard = 0;
+
+#ifdef __ARM__
+
+void __stack_chk_fail(void)
+{
+    /* Inform Kernel that a SSP check has failed trough exit code */
+    __asm__ volatile(
+        "ldr r0, =123UL\n" /* exit code in r0 */
+        "svc %0\n"
+        :: "I" SYSCALL_EXIT
+    );
+    /* never reached */
+}
+#else
+void __stack_chk_fail(void)
+{
+    /* fallbacking to portable yet frame-requiring implementation */
+    /* Inform Kernel that a SSP check has failed trough exit code */
+    __sys_exit(123);
+    /* never reached */
+}
+
+#endif/**/
 
 extern int main(void);
 
