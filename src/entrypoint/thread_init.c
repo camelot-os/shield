@@ -19,7 +19,9 @@ uint32_t __stack_chk_guard = 0;
 
 #ifdef __arm__
 
-void __stack_chk_fail(void)
+void
+__attribute__((no_stack_protector, noreturn, used, naked))
+__stack_chk_fail(void)
 {
     /* Inform Kernel that a SSP check has failed trough exit code */
     __asm__ volatile(
