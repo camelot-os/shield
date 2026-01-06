@@ -17,7 +17,7 @@
  */
 uint32_t __stack_chk_guard = 0;
 
-#ifdef __ARM__
+#ifdef __arm__
 
 void __stack_chk_fail(void)
 {
