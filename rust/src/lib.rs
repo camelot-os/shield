@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Ledger SAS
+// SPDX-FileCopyrightText: 2025 Stephane N (ANSSI)
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 

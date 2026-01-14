@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: 2024 Ledger SAS
+// SPDX-FileCopyrightText: 2025 Stephane N (ANSSI)
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
@@ -9,7 +10,7 @@ use uapi::{copy_to_kernel, syscall};
 // e.g. __sys_log syscall, other term, file, etc.
 struct LogSink;
 
-/// Write trait impl for LogSink type
+/// Write trait impl for `LogSink` type
 impl fmt::Write for LogSink {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         let raw = s.as_bytes();
@@ -20,6 +21,9 @@ impl fmt::Write for LogSink {
 }
 
 /// public print entrypoint called by macro rules
+/// # Panics
+///
+/// Will panic if `write_fmt` panics.
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     LogSink.write_fmt(args).expect("Print failed");

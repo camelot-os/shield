@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 ANSSI
+// SPDX-FileCopyrightText: 2025 Stephane N (ANSSI)
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
@@ -28,6 +28,9 @@ use uapi::systypes::TaskLabel;
 ///     Err(status) => println!("Failed to get process handle: {:?}", status),
 /// }
 /// ```
+/// # Errors
+///
+/// Will return `Err` if denied by the sentry kernel.
 pub fn get_process_handle(task: TaskLabel) -> Result<u32, Status> {
     if sentry_uapi::syscall::get_process_handle(task) != Status::Ok {
         return Err(Status::Denied);
