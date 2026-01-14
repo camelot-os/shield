@@ -39,14 +39,12 @@ pub struct Shm<State> {
 }
 
 impl<State> Shm<State> {
-    /* --------------------------------------------------------------------- */
-    /* Internal helpers                                                       */
-    /* --------------------------------------------------------------------- */
-
     /// Retrieve a shared memory handle from a label.
     ///
     /// This performs a syscall followed by a copy from kernel space.
-    fn fetch_handle(label: ShmLabel) -> Result<ShmHandle, Status> {
+    /// # Errors
+    /// Propagates kernel errors if handle retrieval fails.
+    pub fn fetch_handle(label: ShmLabel) -> Result<ShmHandle, Status> {
         match sentry_uapi::syscall::get_shm_handle(label) {
             Status::Ok => {}
             status => return Err(status),
@@ -60,7 +58,9 @@ impl<State> Shm<State> {
     }
 
     /// Refresh cached shared memory information from the kernel.
-    fn refresh_info(&mut self) -> Result<&ShmInfo, Status> {
+    /// # Errors
+    /// Propagates kernel errors if information refresh fails.
+    pub fn refresh_info(&mut self) -> Result<&ShmInfo, Status> {
         let mut info = ShmInfo {
             label: 0,
             handle: 0,
@@ -84,7 +84,9 @@ impl<State> Shm<State> {
     }
 
     /// Return cached information or refresh it if needed.
-    fn info(&mut self) -> Result<&ShmInfo, Status> {
+    /// # Errors
+    /// Propagates kernel errors if information retrieval fails.
+    pub fn info(&mut self) -> Result<&ShmInfo, Status> {
         if let Some(ref info) = self.info_cache {
             return Ok(info);
         }
@@ -92,15 +94,11 @@ impl<State> Shm<State> {
         self.refresh_info()
     }
 
-    fn has_permission(&mut self, perm: SHMPermission) -> bool {
+    pub fn has_permission(&mut self, perm: SHMPermission) -> bool {
         self.info()
             .map(|info| info.perms & perm as u32 != 0)
             .unwrap_or(false)
     }
-
-    /* --------------------------------------------------------------------- */
-    /* Public accessors                                                       */
-    /* --------------------------------------------------------------------- */
 
     /// Return the permission mask of the shared memory.
     ///
