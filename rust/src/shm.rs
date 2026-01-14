@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 Stephane N (ANSSI)
+// SPDX-FileCopyrightText: 2025-2026 Stephane N (ANSSI)
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
