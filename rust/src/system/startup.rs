@@ -1,9 +1,10 @@
 // SPDX-FileCopyrightText: 2024 Ledger SAS
+// SPDX-FileCopyrightText: 2025 Stephane N (ANSSI)
 //
 // SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 unsafe extern "Rust" {
-    /// External no_mangled, Rust ABI, `main` function declaration
+    /// External `no_mangled`, Rust ABI, `main` function declaration
     /// symbol defined in main.rs of the binary crate w/ [`shield-startup-macros::shield_main`] macro
     fn main();
 }
@@ -20,6 +21,9 @@ static mut __stack_chk_guard: u32 = 0;
 /// passed by the Sentry kernel as arguments.
 ///
 /// The seed is used to set the compiler-handled SSP value.
+/// # Panics
+///
+/// Will panic if `main()` exists
 #[unsafe(no_mangle)]
 pub extern "C" fn _start(_thread_id: u32, seed: u32) -> ! {
     unsafe {
