@@ -1,5 +1,5 @@
 [wrap-git]
-url = https://github.com/outpost-os/sentry-kernel.git
+url = https://github.com/camelot-os/sentry-kernel.git
 revision = main
 depth = 1
 
