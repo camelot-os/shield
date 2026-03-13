@@ -5,6 +5,7 @@
 fs = import('fs')
 
 shield_headers += files([
+    'sentry.h',
     'errno.h',
     'pthread.h',
     'signal.h',
