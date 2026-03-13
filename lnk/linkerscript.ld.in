@@ -140,6 +140,7 @@ SECTIONS
      * if user add heap in it's task config, _eheap sym is patched at relocation
      * time.
      */
+    . = ALIGN(4);
     _sheap = .;
     _eheap = .;
 

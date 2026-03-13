@@ -24,6 +24,9 @@ kconfig_data = kconfig_proj.get_variable('kconfig_data')
 shield_external_deps = []
 shield_data_dir = get_option('datadir') / 'shield'
 
+with_picolibc_opt = get_option('with_picolibc')
+
+
 shield_link_args = []
 # Extra variable to add to the generated pkg-config file
 shield_pkgconfig_extravar = [ 'shield_datadir=${datadir}/shield' ]
@@ -53,6 +56,13 @@ shield_link_args += [
     '-nodefaultlibs',
     '-nostartfiles',
 ]
+
+# the picolibc support is based on the fact that picolibc is
+# provided by the cross-toolchain itself, which is, when using Camelot-SDK
+# a part of the SDK components
+if with_picolibc_opt
+    shield_link_args += '-specs=picolibc.specs'
+endif
 
 # XXX:
 # In case of static PIC build, the app is linked as executable elf and relocates
@@ -126,3 +136,13 @@ with_doc_opt = get_option('with_doc')
 if with_doc_opt
     subdir('doc')
 endif
+
+summary(
+    {
+        'picolibc': with_picolibc_opt,
+        'tests': with_tests_opt,
+        'doc': with_doc_opt,
+    },
+    bool_yn: true,
+    section: 'Configuration',
+)

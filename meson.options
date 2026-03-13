@@ -4,6 +4,7 @@
 option('config', type: 'string', description: 'Configuration file to use', yield: true)
 option('with_doc', type: 'boolean', value: false, description: 'trigger the sphinx documentation build')
 option('with_tests', type: 'boolean', value: false, description: 'with unit tests')
+option('with_picolibc', type: 'boolean', value: false, description: 'with picolibc support')
 option('dts', type: 'string', description: 'Top level DTS file', yield: true)
 option('dts-include-dirs', type: 'array', yield: true,
        description: 'Directories to add to resolution path for dtsi inclusion')
