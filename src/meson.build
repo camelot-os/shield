@@ -5,6 +5,9 @@
 # for private headers, only compile time
 subdir('include')
 
+if not with_picolibc_opt
+# when using picolibc, no need for local ulibc implementation,
+# as picolibc will provide the libc symbols
 shield_clib_sourceset.add(files(
     'abs.c',
     'assert.c',
@@ -19,7 +22,13 @@ shield_clib_sourceset.add(files(
     'signal.c',
     'sys/msg.c',
 ))
+else
+shield_clib_sourceset.add(files(
+    'picolibc.c',
+))
+endif
 
+# files that are always required
 shield_clib_sourceset.add(
     when: 'CONFIG_WITH_SENTRY',
     if_true: files(

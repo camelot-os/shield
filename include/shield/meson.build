@@ -4,6 +4,11 @@
 
 fs = import('fs')
 
+if with_picolibc_opt
+shield_headers += files([
+    'sentry.h',
+])
+else
 shield_headers += files([
     'sentry.h',
     'errno.h',
@@ -17,6 +22,8 @@ shield_headers += files([
 
 subdir('arpa')
 subdir('sys')
+endif
+
 
 foreach header: shield_headers
     install_headers(fs.relative_to(header, meson.current_source_dir()),
