@@ -21,7 +21,7 @@ extern "C" {
  * @param timeout_ms Delay in milliseconds before signal delivery.
  * @return Syscall status.
  */
-static inline Status sys_alarm(uint32_t timeout_ms)
+inline Status sys_alarm(uint32_t timeout_ms)
 {
 	return __sys_alarm(timeout_ms);
 }
@@ -32,7 +32,7 @@ static inline Status sys_alarm(uint32_t timeout_ms)
  * @param status Process exit status code.
  * @return Syscall status.
  */
-static inline Status sys_exit(int32_t status)
+inline Status sys_exit(int32_t status)
 {
 	return __sys_exit(status);
 }
@@ -47,7 +47,7 @@ static inline Status sys_exit(int32_t status)
  * @param cycle Output value (u64).
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_get_cycle(Precision precision, uint64_t *cycle)
+inline Status sys_get_cycle(Precision precision, uint64_t *cycle)
 {
 	Status status = STATUS_INVALID;
 
@@ -75,7 +75,7 @@ end:
  * @param dev Output handle.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_get_device_handle(uint8_t devlabel, devh_t *dev)
+inline Status sys_get_device_handle(uint8_t devlabel, devh_t *dev)
 {
 	Status status = STATUS_INVALID;
 
@@ -103,7 +103,7 @@ end:
  * @param stream Output handle.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_get_dma_stream_handle(uint32_t label, dmah_t *stream)
+inline Status sys_get_dma_stream_handle(uint32_t label, dmah_t *stream)
 {
 	Status status = STATUS_INVALID;
 
@@ -131,7 +131,7 @@ end:
  * @param shm Output handle.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_get_shm_handle(uint32_t shmlabel, shmh_t *shm)
+inline Status sys_get_shm_handle(uint32_t shmlabel, shmh_t *shm)
 {
 	Status status = STATUS_INVALID;
 
@@ -158,7 +158,7 @@ end:
  * @param handle Output handle.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_get_process_handle(ProcessLabel process, taskh_t *handle)
+inline Status sys_get_process_handle(ProcessLabel process, taskh_t *handle)
 {
 	Status status = STATUS_INVALID;
 
@@ -185,7 +185,7 @@ end:
  * @param random Output random value.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_get_random(uint32_t *random)
+inline Status sys_get_random(uint32_t *random)
 {
 	Status status = STATUS_INVALID;
 
@@ -210,7 +210,7 @@ end:
  * @param io GPIO index.
  * @return Syscall status.
  */
-static inline Status sys_gpio_configure(uint32_t resource, uint8_t io)
+inline Status sys_gpio_configure(uint32_t resource, uint8_t io)
 {
 	return __sys_gpio_configure(resource, io);
 }
@@ -226,7 +226,7 @@ static inline Status sys_gpio_configure(uint32_t resource, uint8_t io)
  * @param val Output value.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_gpio_get(uint32_t resource, uint8_t io, bool *val)
+inline Status sys_gpio_get(uint32_t resource, uint8_t io, bool *val)
 {
 	Status status = STATUS_INVALID;
 	uint8_t value;
@@ -258,7 +258,7 @@ end:
  * @param io GPIO index.
  * @return Syscall status.
  */
-static inline Status sys_gpio_reset(uint32_t resource, uint8_t io)
+inline Status sys_gpio_reset(uint32_t resource, uint8_t io)
 {
 	return __sys_gpio_reset(resource, io);
 }
@@ -271,7 +271,7 @@ static inline Status sys_gpio_reset(uint32_t resource, uint8_t io)
  * @param val GPIO value to write.
  * @return Syscall status.
  */
-static inline Status sys_gpio_set(uint32_t resource, uint8_t io, bool val)
+inline Status sys_gpio_set(uint32_t resource, uint8_t io, bool val)
 {
 	return __sys_gpio_set(resource, io, val);
 }
@@ -283,7 +283,7 @@ static inline Status sys_gpio_set(uint32_t resource, uint8_t io, bool val)
  * @param io GPIO index.
  * @return Syscall status.
  */
-static inline Status sys_gpio_toggle(uint32_t resource, uint8_t io)
+inline Status sys_gpio_toggle(uint32_t resource, uint8_t io)
 {
 	return __sys_gpio_toggle(resource, io);
 }
@@ -294,7 +294,7 @@ static inline Status sys_gpio_toggle(uint32_t resource, uint8_t io)
  * @param irq IRQ number.
  * @return Syscall status.
  */
-static inline Status sys_irq_acknowledge(uint16_t irq)
+inline Status sys_irq_acknowledge(uint16_t irq)
 {
 	return __sys_irq_acknowledge(irq);
 }
@@ -305,7 +305,7 @@ static inline Status sys_irq_acknowledge(uint16_t irq)
  * @param irq IRQ number.
  * @return Syscall status.
  */
-static inline Status sys_irq_enable(uint16_t irq)
+inline Status sys_irq_enable(uint16_t irq)
 {
 	return __sys_irq_enable(irq);
 }
@@ -316,7 +316,7 @@ static inline Status sys_irq_enable(uint16_t irq)
  * @param irq IRQ number.
  * @return Syscall status.
  */
-static inline Status sys_irq_disable(uint16_t irq)
+inline Status sys_irq_disable(uint16_t irq)
 {
 	return __sys_irq_disable(irq);
 }
@@ -328,7 +328,7 @@ static inline Status sys_irq_disable(uint16_t irq)
  * @param length Buffer length.
  * @return Copy or syscall status.
  */
-static inline Status sys_log(const uint8_t *data, size_t length)
+inline Status sys_log(const uint8_t *data, size_t length)
 {
 	Status status = STATUS_INVALID;
 	size_t maxlen = svcexchange_get_maxlen();
@@ -374,7 +374,7 @@ end:
  * @param mode CPU sleep mode.
  * @return Syscall status.
  */
-static inline Status sys_manage_cpu_sleep(CPUSleep mode)
+inline Status sys_manage_cpu_sleep(CPUSleep mode)
 {
 	return __sys_manage_cpu_sleep(mode);
 }
@@ -385,7 +385,7 @@ static inline Status sys_manage_cpu_sleep(CPUSleep mode)
  * @param dev Handle device.
  * @return Syscall status.
  */
-static inline Status sys_map_dev(devh_t dev)
+inline Status sys_map_dev(devh_t dev)
 {
 	return __sys_map_dev(dev);
 }
@@ -396,7 +396,7 @@ static inline Status sys_map_dev(devh_t dev)
  * @param shm Handle SHM.
  * @return Syscall status.
  */
-static inline Status sys_map_shm(shmh_t shm)
+inline Status sys_map_shm(shmh_t shm)
 {
 	return __sys_map_shm(shm);
 }
@@ -412,7 +412,7 @@ static inline Status sys_map_shm(shmh_t shm)
  * @param length Message length.
  * @return Copy or syscall status.
  */
-static inline Status sys_send_ipc(uint32_t resource, const uint8_t *data, size_t length)
+inline Status sys_send_ipc(uint32_t resource, const uint8_t *data, size_t length)
 {
 	Status status = STATUS_INVALID;
 
@@ -442,7 +442,7 @@ end:
  * @param signal_type Signal to send.
  * @return Syscall status.
  */
-static inline Status sys_send_signal(uint32_t resource, Signal signal_type)
+inline Status sys_send_signal(uint32_t resource, Signal signal_type)
 {
 	return __sys_send_signal(resource, signal_type);
 }
@@ -455,7 +455,7 @@ static inline Status sys_send_signal(uint32_t resource, Signal signal_type)
  * @param shm_perm SHM permission mask.
  * @return Syscall status.
  */
-static inline Status sys_shm_set_credential(shmh_t shm, taskh_t target, uint32_t shm_perm)
+inline Status sys_shm_set_credential(shmh_t shm, taskh_t target, uint32_t shm_perm)
 {
 	return __sys_shm_set_credential(shm, target, shm_perm);
 }
@@ -470,7 +470,7 @@ static inline Status sys_shm_set_credential(shmh_t shm, taskh_t target, uint32_t
  * @param infos Output structure.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_shm_get_infos(shmh_t shm, shm_infos_t *infos)
+inline Status sys_shm_get_infos(shmh_t shm, shm_infos_t *infos)
 {
 	Status status = STATUS_INVALID;
 
@@ -495,7 +495,7 @@ end:
  * @param mode Sleep mode.
  * @return Syscall status.
  */
-static inline Status sys_sleep(SleepDuration duration_ms, SleepMode mode)
+inline Status sys_sleep(SleepDuration duration_ms, SleepMode mode)
 {
 	return __sys_sleep(duration_ms, mode);
 }
@@ -506,7 +506,7 @@ static inline Status sys_sleep(SleepDuration duration_ms, SleepMode mode)
  * @param process Target process label.
  * @return Syscall status.
  */
-static inline Status sys_start(ProcessLabel process)
+inline Status sys_start(ProcessLabel process)
 {
 	return __sys_start(process);
 }
@@ -517,7 +517,7 @@ static inline Status sys_start(ProcessLabel process)
  * @param dev Handle device.
  * @return Syscall status.
  */
-static inline Status sys_unmap_dev(devh_t dev)
+inline Status sys_unmap_dev(devh_t dev)
 {
 	return __sys_unmap_dev(dev);
 }
@@ -528,7 +528,7 @@ static inline Status sys_unmap_dev(devh_t dev)
  * @param shm Handle SHM.
  * @return Syscall status.
  */
-static inline Status sys_unmap_shm(shmh_t shm)
+inline Status sys_unmap_shm(shmh_t shm)
 {
 	return __sys_unmap_shm(shm);
 }
@@ -545,7 +545,7 @@ static inline Status sys_unmap_shm(shmh_t shm)
  * @param event_len Number of bytes to copy into `event`.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_wait_for_event(uint8_t mask, int32_t timeout, void *event, size_t event_len)
+inline Status sys_wait_for_event(uint8_t mask, int32_t timeout, void *event, size_t event_len)
 {
 	Status status = STATUS_INVALID;
 
@@ -574,7 +574,7 @@ end:
  *
  * @return Syscall status.
  */
-static inline Status sys_sched_yield(void)
+inline Status sys_sched_yield(void)
 {
 	return __sys_sched_yield();
 }
@@ -587,7 +587,7 @@ static inline Status sys_sched_yield(void)
  * @param val Value to apply.
  * @return Syscall status.
  */
-static inline Status sys_pm_set_clock(uint32_t clk_reg, uint32_t regmsk, uint32_t val)
+inline Status sys_pm_set_clock(uint32_t clk_reg, uint32_t regmsk, uint32_t val)
 {
 	return __sys_pm_set_clock(clk_reg, regmsk, val);
 }
@@ -598,7 +598,7 @@ static inline Status sys_pm_set_clock(uint32_t clk_reg, uint32_t regmsk, uint32_
  * @param stream Handle DMA.
  * @return Syscall status.
  */
-static inline Status sys_dma_start_stream(dmah_t stream)
+inline Status sys_dma_start_stream(dmah_t stream)
 {
 	return __sys_dma_start_stream(stream);
 }
@@ -609,7 +609,7 @@ static inline Status sys_dma_start_stream(dmah_t stream)
  * @param stream Handle DMA.
  * @return Syscall status.
  */
-static inline Status sys_dma_suspend_stream(dmah_t stream)
+inline Status sys_dma_suspend_stream(dmah_t stream)
 {
 	return __sys_dma_suspend_stream(stream);
 }
@@ -620,7 +620,7 @@ static inline Status sys_dma_suspend_stream(dmah_t stream)
  * @param stream Handle DMA.
  * @return Syscall status.
  */
-static inline Status sys_dma_resume_stream(dmah_t stream)
+inline Status sys_dma_resume_stream(dmah_t stream)
 {
 	return __sys_dma_resume_stream(stream);
 }
@@ -631,7 +631,7 @@ static inline Status sys_dma_resume_stream(dmah_t stream)
  * @param stream Handle DMA.
  * @return Syscall status.
  */
-static inline Status sys_dma_assign_stream(dmah_t stream)
+inline Status sys_dma_assign_stream(dmah_t stream)
 {
 	return __sys_dma_assign_stream(stream);
 }
@@ -642,7 +642,7 @@ static inline Status sys_dma_assign_stream(dmah_t stream)
  * @param stream Handle DMA.
  * @return Syscall status.
  */
-static inline Status sys_dma_unassign_stream(dmah_t stream)
+inline Status sys_dma_unassign_stream(dmah_t stream)
 {
 	return __sys_dma_unassign_stream(stream);
 }
@@ -657,7 +657,7 @@ static inline Status sys_dma_unassign_stream(dmah_t stream)
  * @param stream_status Output status byte.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_dma_get_stream_status(dmah_t stream, uint8_t *stream_status)
+inline Status sys_dma_get_stream_status(dmah_t stream, uint8_t *stream_status)
 {
 	Status status = STATUS_INVALID;
 
@@ -687,7 +687,7 @@ end:
  * @param info_len Number of bytes to copy.
  * @return Syscall or kernel-copy status.
  */
-static inline Status sys_dma_get_stream_info(dmah_t stream, void *stream_info, size_t info_len)
+inline Status sys_dma_get_stream_info(dmah_t stream, void *stream_info, size_t info_len)
 {
 	Status status = STATUS_INVALID;
 
