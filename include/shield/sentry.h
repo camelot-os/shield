@@ -331,22 +331,39 @@ static inline Status sys_irq_disable(uint16_t irq)
 static inline Status sys_log(const uint8_t *data, size_t length)
 {
 	Status status = STATUS_INVALID;
+	size_t maxlen = svcexchange_get_maxlen();
+	size_t offset = 0U;
 
 	if ((data == NULL) && (length != 0U)) {
 		goto end;
 	}
-	if (length > svcexchange_get_maxlen()) {
+	if ((length != 0U) && (maxlen == 0U)) {
+		goto end;
+	}
+	if (length == 0U) {
+		status = __sys_log(0U);
 		goto end;
 	}
 
-	if (length != 0U) {
-		status = copy_to_kernel(data, length);
+	while (offset < length) {
+		size_t chunk_len = length - offset;
+
+		if (chunk_len > maxlen) {
+			chunk_len = maxlen;
+		}
+
+		status = copy_to_kernel(&data[offset], chunk_len);
 		if (status != STATUS_OK) {
 			goto end;
 		}
-	}
 
-	status = __sys_log(length);
+		status = __sys_log(chunk_len);
+		if (status != STATUS_OK) {
+			goto end;
+		}
+
+		offset += chunk_len;
+	}
 end:
 	return status;
 }
