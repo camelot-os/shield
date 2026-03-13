@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include <shield/sentry.h>
 #include <shield/private/coreutils.h>
@@ -24,6 +25,7 @@ extern uint32_t _eheap;
 #define PICOLIBC_WEAK __attribute__((weak))
 
 /*@ */
+__attribute__((used))
 void _exit(int status)
 {
     sys_exit(status);
@@ -43,6 +45,7 @@ void _exit(int status)
  * @param nbyte Number of bytes to read.
  * @return Number of bytes read, or -1 on error.
  */
+__attribute__((used))
 ssize_t read(int fd, void *buf, size_t nbyte)
 {
     int res = -1;
@@ -80,6 +83,7 @@ end:
  * @param nbyte Number of bytes to write.
  * @return Number of bytes written, or -1 on error.
  */
+__attribute__((used))
 ssize_t write(int fd, const void *buf, size_t nbyte)
 {
     int res = -1;
@@ -112,6 +116,7 @@ end:
  * @param length Number of bytes to fill.
  * @return 0 on success, -1 on error.
  */
+__attribute__((used))
 int getentropy(void *buffer, size_t length)
 {
     int res = -1;
@@ -156,6 +161,7 @@ end:
  * @param fd File descriptor to close.
  * @return -1 to indicate failure.
  */
+__attribute__((used))
 PICOLIBC_WEAK int close(int fd)
 {
     (void)fd;
@@ -196,7 +202,8 @@ PICOLIBC_WEAK int fstat(int fd, struct stat *statbuf)
  * @param tz Buffer to store the timezone information (not used in this implementation).
  * @return -1 to indicate failure.
  */
-PICOLIBC_WEAK int gettimeofday(struct timeval *tv, struct timezone *tz)
+__attribute__((used))
+PICOLIBC_WEAK int gettimeofday(struct timeval *tv, void *tz)
 {
     (void)tv;
     (void)tz;
@@ -216,6 +223,7 @@ PICOLIBC_WEAK int gettimeofday(struct timeval *tv, struct timezone *tz)
  * @param whence Position from which offset is applied.
  * @return -1 to indicate failure.
  */
+__attribute__((used))
 PICOLIBC_WEAK off_t lseek(int fd, off_t offset, int whence)
 {
     (void)fd;
@@ -236,6 +244,7 @@ PICOLIBC_WEAK off_t lseek(int fd, off_t offset, int whence)
  * @param flags Flags for opening the file.
  * @return -1 to indicate failure.
  */
+__attribute__((used))
 PICOLIBC_WEAK int open(char *path, int flags, ...)
 {
     (void)path;
@@ -256,7 +265,8 @@ PICOLIBC_WEAK int open(char *path, int flags, ...)
  * @param oldset Buffer to store the old signal mask.
  * @return -1 to indicate failure.
  */
-PICOLIBC_WEAK int sigprocmask(int how, sigset_t *set, sigset_t *oldset)
+__attribute__((used))
+PICOLIBC_WEAK int sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
     (void)how;
     (void)set;
@@ -276,28 +286,12 @@ PICOLIBC_WEAK int sigprocmask(int how, sigset_t *set, sigset_t *oldset)
  * @param statbuf Buffer to store the file status.
  * @return -1 to indicate failure.
  */
-PICOLIBC_WEAK int stat(char *path, struct stat *statbuf)
+__attribute__((used))
+PICOLIBC_WEAK int stat(const char *path, struct stat *statbuf)
 {
     (void)path;
     (void)statbuf;
     return -1;
-}
-
-/**
- * @brief Get process times.
- *
- * This function is a weak symbol and will return -1 by default. It can be
- * overridden by providing an implementation that matches the signature at upper
- * levels of the application. The default implementation does not perform any
- * operations and simply returns -1 to indicate failure.
- *
- * @param buf Buffer to store the process times.
- * @return -1 to indicate failure.
- */
-PICOLIBC_WEAK clock_t times(struct tms *buf)
-{
-    (void)buf;
-    return (clock_t)-1;
 }
 
 /**
@@ -311,6 +305,7 @@ PICOLIBC_WEAK clock_t times(struct tms *buf)
  * @param path Path to the file to unlink.
  * @return -1 to indicate failure.
  */
+__attribute__((used))
 PICOLIBC_WEAK int unlink(char *path)
 {
     (void)path;
